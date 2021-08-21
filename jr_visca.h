@@ -22,10 +22,12 @@
 
 #include <stdint.h>
 
+#define JR_VISCA_MAX_FRAME_DATA_LENGTH 14
+
 typedef struct {
     uint8_t sender;
     uint8_t receiver;
-    uint8_t data[14];
+    uint8_t data[JR_VISCA_MAX_FRAME_DATA_LENGTH];
     uint8_t dataLength;
 } jr_viscaFrame;
 
@@ -42,5 +44,25 @@ typedef struct {
  * If a full frame is not found, returns 0.
  */
 int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame);
+
+#define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ 1
+#define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ 2
+
+union jr_viscaMessageParameters
+{
+    
+};
+
+/**
+ * Decode a frame into a message.
+ * 
+ * Returns a `JR_VISCA_MESSAGE_*` value if the message was recognized,
+ * or -1 if the message was not recognized.
+ * 
+ * `frame` is the frame to be decoded, previously obtained from `jr_viscaDataToFrame()`
+ * If the message decoded from `frame` contains any parameters (not all messages do),
+ * `messageParameters` will have said parameters written to it.
+ */
+int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *messageParameters);
 
 #endif

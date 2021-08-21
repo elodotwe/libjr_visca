@@ -20,6 +20,7 @@
 #include "jr_visca.h"
 
 #include <string.h>
+#include <stdio.h>
 
 // Returns number of bytes consumed
 int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
@@ -47,4 +48,49 @@ int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
     frame->dataLength = terminatorIndex - 1;
 
     return terminatorIndex + 1;
+}
+
+typedef struct {
+    uint8_t signature[JR_VISCA_MAX_FRAME_DATA_LENGTH];
+    uint8_t signatureMask[JR_VISCA_MAX_FRAME_DATA_LENGTH];
+    int signatureLength;
+    int commandType;
+} jr_viscaMessageDefinition;
+
+jr_viscaMessageDefinition definitions[] = {
+    { {0x9, 0x6, 0x12}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ },
+    { {0x9, 0x4, 0x47}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_ZOOM_POSITION_INQ },
+    { {}, {}, 0, 0}
+};
+
+void _jr_viscahex_print(char *buf, int buf_size) {
+    for (int i = 0; i < buf_size; i++) {
+        printf("%02hhx ", buf[i]);
+    }
+}
+
+void _jr_viscaMemAnd(uint8_t *a, uint8_t *b, uint8_t *output, int length) {
+    for (int i = 0; i < length; i++) {
+        output[i] = a[i] & b[i];
+    }
+}
+
+int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *messageParameters) {
+    int i = 0;
+    while (definitions[i].signatureLength) {
+        uint8_t maskedFrame[JR_VISCA_MAX_FRAME_DATA_LENGTH];
+        _jr_viscaMemAnd(frame.data, definitions[i].signatureMask, maskedFrame, frame.dataLength);
+        if (memcmp(maskedFrame, definitions[i].signature, definitions[i].signatureLength) == 0) {
+            // TODO write parameters
+            return definitions[i].commandType;
+        }
+        // printf("definition %d: sig: ", i);
+        // _jr_viscahex_print(definitions[i].signature, definitions[i].signatureLength);
+        // printf(" sigmask: ");
+        // _jr_viscahex_print(definitions[i].signatureMask, definitions[i].signatureLength);
+        // printf("\n");
+        i++;
+    }
+
+    return -1;
 }
