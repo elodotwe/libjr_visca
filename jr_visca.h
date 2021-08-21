@@ -27,8 +27,20 @@ typedef struct {
     uint8_t receiver;
     uint8_t data[14];
     uint8_t dataLength;
-} ptzFrame;
+} jr_viscaFrame;
 
-int ptzDataToFrame(uint8_t *data, int dataLength, ptzFrame *frame);
+/**
+ * Find a VISCA frame at the beginning of the given buffer.
+ * 
+ * `data` is the buffer to decode
+ * `dataLength` is the number of bytes contained in `data`
+ * 
+ * If a full frame is found in `data`, `jr_viscaDataToFrame` will write
+ * the found frame to `frame`, and return the number of bytes consumed from
+ * `data`.
+ * 
+ * If a full frame is not found, returns 0.
+ */
+int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame);
 
 #endif
