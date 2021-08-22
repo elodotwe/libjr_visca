@@ -65,4 +65,20 @@ union jr_viscaMessageParameters
  */
 int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *messageParameters);
 
+/**
+ * Encode a message into a frame.
+ * 
+ * `messageType` should be one of the `JR_VISCA_MESSAGE_*` values, indicating which
+ * message is to be encoded.
+ * 
+ * `messageParameters` should have the member corresponding to the given `messageType` set,
+ * if one exists (if there is no corresponding `messageParameters` member, `messageParameters` is
+ * ignored for that message).
+ * 
+ * The encoded frame will be written to `frame`.
+ * 
+ * Returns 0 on success, -1 on failure.
+ */
+int jr_viscaEncodeFrame(int messageType, union jr_viscaMessageParameters messageParameters, jr_viscaFrame *frame);
+
 #endif

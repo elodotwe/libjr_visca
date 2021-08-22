@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // Returns number of bytes consumed
 int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
@@ -55,12 +56,13 @@ typedef struct {
     uint8_t signatureMask[JR_VISCA_MAX_FRAME_DATA_LENGTH];
     int signatureLength;
     int commandType;
+    void (*handleParameters)(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame);
 } jr_viscaMessageDefinition;
 
 jr_viscaMessageDefinition definitions[] = {
-    { {0x9, 0x6, 0x12}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ },
-    { {0x9, 0x4, 0x47}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_ZOOM_POSITION_INQ },
-    { {}, {}, 0, 0}
+    { {0x9, 0x6, 0x12}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ, NULL },
+    { {0x9, 0x4, 0x47}, {0xff, 0xff, 0xff}, 3, JR_VISCA_MESSAGE_ZOOM_POSITION_INQ, NULL },
+    { {}, {}, 0, 0, NULL}
 };
 
 void _jr_viscahex_print(char *buf, int buf_size) {
@@ -81,7 +83,9 @@ int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *me
         uint8_t maskedFrame[JR_VISCA_MAX_FRAME_DATA_LENGTH];
         _jr_viscaMemAnd(frame.data, definitions[i].signatureMask, maskedFrame, frame.dataLength);
         if (memcmp(maskedFrame, definitions[i].signature, definitions[i].signatureLength) == 0) {
-            // TODO write parameters
+            if (definitions[i].handleParameters != NULL) {
+                definitions[i].handleParameters(&frame, messageParameters, true);
+            }
             return definitions[i].commandType;
         }
         // printf("definition %d: sig: ", i);
@@ -89,6 +93,23 @@ int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *me
         // printf(" sigmask: ");
         // _jr_viscahex_print(definitions[i].signatureMask, definitions[i].signatureLength);
         // printf("\n");
+        i++;
+    }
+
+    return -1;
+}
+
+int jr_viscaEncodeFrame(int messageType, union jr_viscaMessageParameters messageParameters, jr_viscaFrame *frame) {
+    int i = 0;
+    while (definitions[i].signatureLength) {
+        if (messageType == definitions[i].commandType) {
+            memcpy(frame->data, definitions[i].signature, definitions[i].signatureLength);
+            frame->dataLength = definitions[i].signatureLength;
+            if (definitions[i].handleParameters != NULL) {
+                definitions[i].handleParameters(frame, &messageParameters, false);
+            }
+            return 0;
+        }
         i++;
     }
 
