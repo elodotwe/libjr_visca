@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#define JR_VISCA_MAX_FRAME_DATA_LENGTH 14
+#define JR_VISCA_MAX_FRAME_DATA_LENGTH 16
 
 typedef struct {
     uint8_t sender;
