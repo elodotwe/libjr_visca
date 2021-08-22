@@ -46,11 +46,18 @@ typedef struct {
 int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame);
 
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ 1
-#define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ 2
+#define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ_RESPONSE 2
+#define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ 3
+#define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ_RESPONSE 4
+
+struct jr_viscaPanTiltPositionInqResponseParameters {
+    int16_t panPosition;
+    int16_t tiltPosition;
+};
 
 union jr_viscaMessageParameters
 {
-    
+    struct jr_viscaPanTiltPositionInqResponseParameters panTiltPositionInqResponseParameters;
 };
 
 /**
