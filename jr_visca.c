@@ -57,6 +57,11 @@ int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
         return -1;
     }
 
+    if (terminatorIndex == 0) {
+        // If no header present, flag an error.
+        return -1;
+    }
+
     // First byte is header containing sender and receiver addresses.
     frame->sender = (data[0] >> 4) & 0x7;
     frame->receiver = data[0] & 0x7;
