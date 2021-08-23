@@ -81,6 +81,14 @@ void testDataToFrame() {
         int result = jr_viscaDataToFrame(data, sizeof(data), &frame);
         assertEqualsInt(result, -1, __LINE__, "bare terminator should cause error");
     }
+
+    {
+        // Frame too long
+        uint8_t data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xff};
+        jr_viscaFrame frame;
+        int result = jr_viscaDataToFrame(data, sizeof(data), &frame);
+        assertEqualsInt(result, -1, __LINE__, "too long frame should cause error");
+    }
 }
 
 int main() {
