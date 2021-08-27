@@ -91,9 +91,25 @@ void testDataToFrame() {
     }
 }
 
+void testEncodeMessage() {
+    {
+        union jr_viscaMessageParameters messageParameters;
+        jr_viscaFrame frame;
+        messageParameters.panTiltPositionInqResponseParameters.panPosition = 0x1234;
+        messageParameters.panTiltPositionInqResponseParameters.tiltPosition = 0xcdef;
+        int result = jr_viscaEncodeFrame(JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ_RESPONSE, messageParameters, &frame);
+        assertEqualsInt(result, 0, __LINE__, "result should be 0");
+        uint8_t data[] = {0x50, 0x01, 0x02, 0x03, 0x04, 0x0c, 0x0d, 0x0e, 0x0f};
+        assertEqualsInt(frame.dataLength, sizeof(data), __LINE__, "data lenth should match");
+        assertEqualsBuffer(frame.data, data, sizeof(data), __LINE__, "data should be well formed");
+    }
+}
+
 int main() {
     printf("jr_visca_tester\n");
     testDataToFrame();
+
+    testEncodeMessage();
 
     return 0;
 }
