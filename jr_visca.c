@@ -74,6 +74,17 @@ int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
     return terminatorIndex + 1;
 }
 
+int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame) {
+    if (frame.dataLength + 2 > dataLength) {
+        return -1;
+    }
+
+    data[0] = 0x80 + (frame.sender << 4) + frame.receiver;
+    memcpy(data + 1, frame.data, frame.dataLength);
+    data[frame.dataLength + 1] = 0xff;
+    return frame.dataLength + 2;
+}
+
 typedef struct {
     uint8_t signature[JR_VISCA_MAX_FRAME_DATA_LENGTH];
     uint8_t signatureMask[JR_VISCA_MAX_FRAME_DATA_LENGTH];

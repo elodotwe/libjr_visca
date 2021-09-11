@@ -8,14 +8,26 @@ void bail(int line, char *message) {
     exit(-1);
 }
 
-void assertEqualsBuffer(uint8_t *a, uint8_t *b, int length, int line, char *message) {
-    if (memcmp(a, b, length) != 0) {
+void _hex_print(char *buf, int buf_size) {
+    for (int i = 0; i < buf_size; i++) {
+        printf("%02hhx ", buf[i]);
+    }
+}
+
+void assertEqualsBuffer(uint8_t *actual, uint8_t *expected, int length, int line, char *message) {
+    if (memcmp(actual, expected, length) != 0) {
+        printf("expected ");
+        _hex_print(expected, length);
+        printf(", actual ");
+        _hex_print(actual, length);
+        printf("\n");
         bail(line, message);
     }
 }
 
-void assertEqualsInt(int a, int b, int line, char *message) {
-    if (a != b) {
+void assertEqualsInt(int actual, int expected, int line, char *message) {
+    if (actual != expected) {
+        printf("expected %d, actual %d\n", expected, actual);
         bail(line, message);
     }
 }
@@ -105,11 +117,42 @@ void testEncodeMessage() {
     }
 }
 
+void testFrameToData() {
+    {
+        jr_viscaFrame frame;
+        frame.sender = 5;
+        frame.receiver = 3;
+        frame.dataLength = 0;
+        uint8_t resultData[18] = { 0 };
+        int result = jr_viscaFrameToData(resultData, sizeof(resultData), frame);
+        assertEqualsInt(result, 2, __LINE__, "frame's data should be 2 bytes long");
+        uint8_t expectedDataResult[] = {0xd3, 0xff};
+        assertEqualsBuffer(resultData, expectedDataResult, result, __LINE__, "data should be well formed");
+    }
+
+    {
+        jr_viscaFrame frame;
+        frame.sender = 1;
+        frame.receiver = 0;
+        uint8_t frameData[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+        memcpy(frame.data, frameData, sizeof(frameData));
+        frame.dataLength = sizeof(frameData);
+
+        uint8_t resultData[18] = { 0 };
+        int result = jr_viscaFrameToData(resultData, sizeof(resultData), frame);
+        assertEqualsInt(result, 18, __LINE__, "frame's data should be 18 bytes long");
+        uint8_t expectedDataResult[] = {0x90, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0xff};
+        assertEqualsBuffer(resultData, expectedDataResult, result, __LINE__, "data should be well formed");
+    }
+}
+
 int main() {
     printf("jr_visca_tester\n");
     testDataToFrame();
 
     testEncodeMessage();
+
+    testFrameToData();
 
     return 0;
 }

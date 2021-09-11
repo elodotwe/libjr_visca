@@ -45,6 +45,14 @@ typedef struct {
  */
 int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame);
 
+/**
+ * Convert `frame` into a buffer to be sent.
+ * 
+ * Returns the actual number of bytes written on success, or
+ * -1 on failure (e.g. given buffer is too short).
+ */
+int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame);
+
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ 1
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ_RESPONSE 2
 #define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ 3
