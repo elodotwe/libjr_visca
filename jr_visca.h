@@ -70,6 +70,8 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame);
 #define JR_VISCA_MESSAGE_ZOOM_WIDE_VARIABLE 13
 #define JR_VISCA_MESSAGE_ZOOM_DIRECT 14
 
+#define JR_VISCA_MESSAGE_PAN_TILT_DRIVE 15
+
 struct jr_viscaPanTiltPositionInqResponseParameters {
     int16_t panPosition;
     int16_t tiltPosition;
@@ -88,12 +90,28 @@ struct jr_viscaZoomVariableParameters {
     uint8_t zoomSpeed;
 };
 
+#define JR_VISCA_TILT_DIRECTION_UP 1
+#define JR_VISCA_TILT_DIRECTION_DOWN 2
+#define JR_VISCA_TILT_DIRECTION_STOP 3
+
+#define JR_VISCA_PAN_DIRECTION_LEFT 1
+#define JR_VISCA_PAN_DIRECTION_RIGHT 2
+#define JR_VISCA_PAN_DIRECTION_STOP 3
+
+struct jr_viscaPanTiltDriveParameters {
+    uint8_t panSpeed; // 1-0x18
+    uint8_t tiltSpeed; // 1-0x14
+    uint8_t panDirection; // JR_VISCA_PAN_DIRECTION_*
+    uint8_t tiltDirection; // JR_VISCA_TILT_DIRECTION_*
+};
+
 union jr_viscaMessageParameters
 {
     struct jr_viscaPanTiltPositionInqResponseParameters panTiltPositionInqResponseParameters;
     struct jr_viscaZoomPositionParameters zoomPositionParameters;
     struct jr_viscaZoomVariableParameters zoomVariableParameters;
     struct jr_viscaAckCompletionParameters ackCompletionParameters;
+    struct jr_viscaPanTiltDriveParameters panTiltDriveParameters;
 };
 
 /**

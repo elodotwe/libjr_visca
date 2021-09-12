@@ -165,6 +165,20 @@ void jr_visca_handleZoomDirectParameters(jr_viscaFrame* frame, union jr_viscaMes
     }
 }
 
+void jr_visca_handlePanTiltDriveParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->panTiltDriveParameters.panDirection = frame->data[5];
+        messageParameters->panTiltDriveParameters.tiltDirection = frame->data[6];
+        messageParameters->panTiltDriveParameters.panSpeed = frame->data[3];
+        messageParameters->panTiltDriveParameters.tiltSpeed = frame->data[4];
+    } else {
+        frame->data[3] = messageParameters->panTiltDriveParameters.panSpeed;
+        frame->data[4] = messageParameters->panTiltDriveParameters.tiltSpeed;
+        frame->data[5] = messageParameters->panTiltDriveParameters.panDirection;
+        frame->data[6] = messageParameters->panTiltDriveParameters.tiltDirection;
+    }
+}
+
 jr_viscaMessageDefinition definitions[] = {
     {
         {0x09, 0x06, 0x12}, //signature
@@ -266,6 +280,13 @@ jr_viscaMessageDefinition definitions[] = {
         7,
         JR_VISCA_MESSAGE_ZOOM_DIRECT,
         &jr_visca_handleZoomDirectParameters
+    },
+    {
+        {0x01, 0x06, 0x01, 0x00, 0x00, 0x00, 0x00},
+        {0xff, 0xff, 0xff, 0xe0, 0xe0, 0xf0, 0xf0},
+        7,
+        JR_VISCA_MESSAGE_PAN_TILT_DRIVE,
+        &jr_visca_handlePanTiltDriveParameters
     },
     { {}, {}, 0, 0, NULL} // Final definition must have `signatureLength` == 0.
 };
