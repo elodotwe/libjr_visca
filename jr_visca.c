@@ -141,6 +141,14 @@ void jr_visca_handleZoomPositionInqResponseParameters(jr_viscaFrame* frame, unio
     }
 }
 
+void jr_visca_handleAckCompletionParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->ackCompletionParameters.socketNumber = frame->data[1] & 0xf;
+    } else {
+        frame->data[1] += messageParameters->ackCompletionParameters.socketNumber;
+    }
+}
+
 jr_viscaMessageDefinition definitions[] = {
     {
         {0x09, 0x06, 0x12}, //signature
@@ -172,6 +180,34 @@ jr_viscaMessageDefinition definitions[] = {
         5,
         JR_VISCA_MESSAGE_ZOOM_POSITION_INQ_RESPONSE,
         &jr_visca_handleZoomPositionInqResponseParameters
+    },
+    {
+        {0x01, 0x04, 0x38, 0x02},
+        {0xff, 0xff, 0xff, 0xff},
+        4,
+        JR_VISCA_MESSAGE_FOCUS_AUTOMATIC,
+        NULL
+    },
+    {
+        {0x01, 0x04, 0x38, 0x03},
+        {0xff, 0xff, 0xff, 0xff},
+        4,
+        JR_VISCA_MESSAGE_FOCUS_MANUAL,
+        NULL
+    },
+    {
+        {0x40},
+        {0xf0},
+        1,
+        JR_VISCA_MESSAGE_ACK,
+        &jr_visca_handleAckCompletionParameters
+    },
+    {
+        {0x50},
+        {0xf0},
+        1,
+        JR_VISCA_MESSAGE_COMPLETION,
+        &jr_visca_handleAckCompletionParameters
     },
     { {}, {}, 0, 0, NULL} // Final definition must have `signatureLength` == 0.
 };

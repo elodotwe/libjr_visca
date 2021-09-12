@@ -57,6 +57,11 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame);
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ_RESPONSE 2
 #define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ 3
 #define JR_VISCA_MESSAGE_ZOOM_POSITION_INQ_RESPONSE 4
+#define JR_VISCA_MESSAGE_FOCUS_AUTOMATIC 5
+#define JR_VISCA_MESSAGE_FOCUS_MANUAL 6
+
+#define JR_VISCA_MESSAGE_ACK 7
+#define JR_VISCA_MESSAGE_COMPLETION 8
 
 struct jr_viscaPanTiltPositionInqResponseParameters {
     int16_t panPosition;
@@ -67,10 +72,15 @@ struct jr_viscaZoomPositionInqResponseParameters {
     int16_t zoomPosition;
 };
 
+struct jr_viscaAckCompletionParameters {
+    uint8_t socketNumber;
+};
+
 union jr_viscaMessageParameters
 {
     struct jr_viscaPanTiltPositionInqResponseParameters panTiltPositionInqResponseParameters;
     struct jr_viscaZoomPositionInqResponseParameters zoomPositionInqResponseParameters;
+    struct jr_viscaAckCompletionParameters ackCompletionParameters;
 };
 
 /**
