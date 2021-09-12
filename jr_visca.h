@@ -63,12 +63,19 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame);
 #define JR_VISCA_MESSAGE_ACK 7
 #define JR_VISCA_MESSAGE_COMPLETION 8
 
+#define JR_VISCA_MESSAGE_ZOOM_STOP 9
+#define JR_VISCA_MESSAGE_ZOOM_TELE_STANDARD 10
+#define JR_VISCA_MESSAGE_ZOOM_WIDE_STANDARD 11
+#define JR_VISCA_MESSAGE_ZOOM_TELE_VARIABLE 12
+#define JR_VISCA_MESSAGE_ZOOM_WIDE_VARIABLE 13
+#define JR_VISCA_MESSAGE_ZOOM_DIRECT 14
+
 struct jr_viscaPanTiltPositionInqResponseParameters {
     int16_t panPosition;
     int16_t tiltPosition;
 };
 
-struct jr_viscaZoomPositionInqResponseParameters {
+struct jr_viscaZoomPositionParameters {
     int16_t zoomPosition;
 };
 
@@ -76,10 +83,16 @@ struct jr_viscaAckCompletionParameters {
     uint8_t socketNumber;
 };
 
+struct jr_viscaZoomVariableParameters {
+    // 0-7, 0=slowest, 7=fastest
+    uint8_t zoomSpeed;
+};
+
 union jr_viscaMessageParameters
 {
     struct jr_viscaPanTiltPositionInqResponseParameters panTiltPositionInqResponseParameters;
-    struct jr_viscaZoomPositionInqResponseParameters zoomPositionInqResponseParameters;
+    struct jr_viscaZoomPositionParameters zoomPositionParameters;
+    struct jr_viscaZoomVariableParameters zoomVariableParameters;
     struct jr_viscaAckCompletionParameters ackCompletionParameters;
 };
 

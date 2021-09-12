@@ -135,9 +135,9 @@ void jr_visca_handlePanTiltPositionInqResponseParameters(jr_viscaFrame* frame, u
 
 void jr_visca_handleZoomPositionInqResponseParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
     if (isDecodingFrame) {
-        messageParameters->zoomPositionInqResponseParameters.zoomPosition = _jr_viscaRead16FromBuffer(frame->data + 1);
+        messageParameters->zoomPositionParameters.zoomPosition = _jr_viscaRead16FromBuffer(frame->data + 1);
     } else {
-        _jr_viscaWrite16ToBuffer(messageParameters->zoomPositionInqResponseParameters.zoomPosition, frame->data + 1);
+        _jr_viscaWrite16ToBuffer(messageParameters->zoomPositionParameters.zoomPosition, frame->data + 1);
     }
 }
 
@@ -146,6 +146,22 @@ void jr_visca_handleAckCompletionParameters(jr_viscaFrame* frame, union jr_visca
         messageParameters->ackCompletionParameters.socketNumber = frame->data[1] & 0xf;
     } else {
         frame->data[1] += messageParameters->ackCompletionParameters.socketNumber;
+    }
+}
+
+void jr_visca_handleZoomVariableParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->zoomVariableParameters.zoomSpeed = frame->data[3] & 0xf;
+    } else {
+        frame->data[3] += messageParameters->zoomVariableParameters.zoomSpeed;
+    }
+}
+
+void jr_visca_handleZoomDirectParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->zoomPositionParameters.zoomPosition = _jr_viscaRead16FromBuffer(frame->data + 3);
+    } else {
+        _jr_viscaWrite16ToBuffer(messageParameters->zoomPositionParameters.zoomPosition, frame->data + 3);
     }
 }
 
@@ -208,6 +224,48 @@ jr_viscaMessageDefinition definitions[] = {
         1,
         JR_VISCA_MESSAGE_COMPLETION,
         &jr_visca_handleAckCompletionParameters
+    },
+    {
+        {0x01, 0x04, 0x07, 0x00},
+        {0xff, 0xff, 0xff, 0xff},
+        4,
+        JR_VISCA_MESSAGE_ZOOM_STOP,
+        NULL
+    },
+    {
+        {0x01, 0x04, 0x07, 0x02},
+        {0xff, 0xff, 0xff, 0xff},
+        4,
+        JR_VISCA_MESSAGE_ZOOM_TELE_STANDARD,
+        NULL
+    },
+    {
+        {0x01, 0x04, 0x07, 0x03},
+        {0xff, 0xff, 0xff, 0xff},
+        4,
+        JR_VISCA_MESSAGE_ZOOM_WIDE_STANDARD,
+        NULL
+    },
+    {
+        {0x01, 0x04, 0x07, 0x20},
+        {0xff, 0xff, 0xff, 0xf0},
+        4,
+        JR_VISCA_MESSAGE_ZOOM_TELE_VARIABLE,
+        &jr_visca_handleZoomVariableParameters
+    },
+    {
+        {0x01, 0x04, 0x07, 0x30},
+        {0xff, 0xff, 0xff, 0xf0},
+        4,
+        JR_VISCA_MESSAGE_ZOOM_WIDE_VARIABLE,
+        &jr_visca_handleZoomVariableParameters
+    },
+    {
+        {0x01, 0x04, 0x47, 0x00, 0x00, 0x00, 0x00},
+        {0xff, 0xff, 0xff, 0xf0, 0xf0, 0xf0, 0xf0},
+        7,
+        JR_VISCA_MESSAGE_ZOOM_DIRECT,
+        &jr_visca_handleZoomDirectParameters
     },
     { {}, {}, 0, 0, NULL} // Final definition must have `signatureLength` == 0.
 };
