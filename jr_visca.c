@@ -79,6 +79,10 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame) {
         return -1;
     }
 
+    if ((frame.sender > 7) || (frame.receiver > 7)) {
+        return -1;
+    }
+
     data[0] = 0x80 + (frame.sender << 4) + frame.receiver;
     memcpy(data + 1, frame.data, frame.dataLength);
     data[frame.dataLength + 1] = 0xff;
@@ -129,6 +133,14 @@ void jr_visca_handlePanTiltPositionInqResponseParameters(jr_viscaFrame* frame, u
     }
 }
 
+void jr_visca_handleZoomPositionInqResponseParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->zoomPositionInqResponseParameters.zoomPosition = _jr_viscaRead16FromBuffer(frame->data + 1);
+    } else {
+        _jr_viscaWrite16ToBuffer(messageParameters->zoomPositionInqResponseParameters.zoomPosition, frame->data + 1);
+    }
+}
+
 jr_viscaMessageDefinition definitions[] = {
     {
         {0x09, 0x06, 0x12}, //signature
@@ -153,6 +165,13 @@ jr_viscaMessageDefinition definitions[] = {
         3,
         JR_VISCA_MESSAGE_ZOOM_POSITION_INQ,
         NULL
+    },
+    {
+        {0x50, 0x00, 0x00, 0x00, 0x00},
+        {0xff, 0xf0, 0xf0, 0xf0, 0xf0},
+        5,
+        JR_VISCA_MESSAGE_ZOOM_POSITION_INQ_RESPONSE,
+        &jr_visca_handleZoomPositionInqResponseParameters
     },
     { {}, {}, 0, 0, NULL} // Final definition must have `signatureLength` == 0.
 };

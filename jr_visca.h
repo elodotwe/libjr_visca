@@ -63,9 +63,14 @@ struct jr_viscaPanTiltPositionInqResponseParameters {
     int16_t tiltPosition;
 };
 
+struct jr_viscaZoomPositionInqResponseParameters {
+    int16_t zoomPosition;
+};
+
 union jr_viscaMessageParameters
 {
     struct jr_viscaPanTiltPositionInqResponseParameters panTiltPositionInqResponseParameters;
+    struct jr_viscaZoomPositionInqResponseParameters zoomPositionInqResponseParameters;
 };
 
 /**
