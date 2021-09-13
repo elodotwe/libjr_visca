@@ -23,6 +23,13 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+typedef struct {
+    uint8_t sender;
+    uint8_t receiver;
+    uint8_t data[JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH - 2];
+    uint8_t dataLength;
+} jr_viscaFrame;
+
 /**
  * Extract a frame from the given buffer.
  * 
@@ -52,7 +59,7 @@ int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
         return 0;
     }
 
-    if (terminatorIndex > JR_VISCA_MAX_FRAME_DATA_LENGTH - 1) {
+    if (terminatorIndex > JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH - 2 - 1) {
         // All our internal buffers are fixed-length. If the frame exceeds that length, bail.
         return -1;
     }
@@ -90,8 +97,8 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame) {
 }
 
 typedef struct {
-    uint8_t signature[JR_VISCA_MAX_FRAME_DATA_LENGTH];
-    uint8_t signatureMask[JR_VISCA_MAX_FRAME_DATA_LENGTH];
+    uint8_t signature[JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH - 2];
+    uint8_t signatureMask[JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH - 2];
     int signatureLength;
     int commandType;
     void (*handleParameters)(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame);
@@ -306,7 +313,7 @@ void _jr_viscaMemAnd(uint8_t *a, uint8_t *b, uint8_t *output, int length) {
 int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *messageParameters) {
     int i = 0;
     while (definitions[i].signatureLength) {
-        uint8_t maskedFrame[JR_VISCA_MAX_FRAME_DATA_LENGTH];
+        uint8_t maskedFrame[JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH - 2];
         _jr_viscaMemAnd(frame.data, definitions[i].signatureMask, maskedFrame, frame.dataLength);
         if (memcmp(maskedFrame, definitions[i].signature, definitions[i].signatureLength) == 0) {
             if (definitions[i].handleParameters != NULL) {
@@ -340,4 +347,29 @@ int jr_viscaEncodeFrame(int messageType, union jr_viscaMessageParameters message
     }
 
     return -1;
+}
+
+int jr_viscaDecodeMessage(uint8_t *data, int dataLength, int *message, union jr_viscaMessageParameters *messageParameters, uint8_t *sender, uint8_t *receiver) {
+    jr_viscaFrame frame;
+    int consumedBytes = jr_viscaDataToFrame(data, dataLength, &frame);
+    if (consumedBytes <= 0) {
+        return consumedBytes;
+    }
+
+    *message = jr_viscaDecodeFrame(frame, messageParameters);
+    *sender = frame.sender;
+    *receiver = frame.receiver;
+
+    return consumedBytes;
+}
+
+int jr_viscaEncodeMessage(uint8_t *data, int dataLength, int message, union jr_viscaMessageParameters messageParameters, uint8_t sender, uint8_t receiver) {
+    jr_viscaFrame frame;
+    frame.sender = sender;
+    frame.receiver = receiver;
+    if (jr_viscaEncodeFrame(message, messageParameters, &frame) < 0) {
+        return -1;
+    }
+
+    return jr_viscaFrameToData(data, dataLength, frame);
 }

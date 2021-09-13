@@ -22,36 +22,7 @@
 
 #include <stdint.h>
 
-#define JR_VISCA_MAX_FRAME_DATA_LENGTH 16
-
-typedef struct {
-    uint8_t sender;
-    uint8_t receiver;
-    uint8_t data[JR_VISCA_MAX_FRAME_DATA_LENGTH];
-    uint8_t dataLength;
-} jr_viscaFrame;
-
-/**
- * Find a VISCA frame at the beginning of the given buffer.
- * 
- * `data` is the buffer to decode
- * `dataLength` is the number of bytes contained in `data`
- * 
- * If a full frame is found in `data`, `jr_viscaDataToFrame` will write
- * the found frame to `frame`, and return the number of bytes consumed from
- * `data`.
- * 
- * If a full frame is not found, returns 0.
- */
-int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame);
-
-/**
- * Convert `frame` into a buffer to be sent.
- * 
- * Returns the actual number of bytes written on success, or
- * -1 on failure (e.g. given buffer is too short).
- */
-int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame);
+#define JR_VISCA_MAX_ENCODED_MESSAGE_DATA_LENGTH 18
 
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ 1
 #define JR_VISCA_MESSAGE_PAN_TILT_POSITION_INQ_RESPONSE 2
@@ -115,31 +86,21 @@ union jr_viscaMessageParameters
 };
 
 /**
- * Decode a frame into a message.
+ * Decodes the first message from `data` into `message` and `messageParameters`.
  * 
- * Returns a `JR_VISCA_MESSAGE_*` value if the message was recognized,
- * or -1 if the message was not recognized.
+ * Returns the byte count of the decoded message, or 0 if the buffer does not contain a complete message.
  * 
- * `frame` is the frame to be decoded, previously obtained from `jr_viscaDataToFrame()`
- * If the message decoded from `frame` contains any parameters (not all messages do),
- * `messageParameters` will have said parameters written to it.
+ * If the buffer contains at least one complete message (i.e. the return value is greater than 0):
+ *  - `message` will either be set to -1 (unrecognized message) or one of the `JR_VISCA_MESSAGE_*` constants.
+ *  - `messageParameters` will have the corresponding parameters set as appropriate for the detected message type.
  */
-int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *messageParameters);
+int jr_viscaDecodeMessage(uint8_t *data, int dataLength, int *message, union jr_viscaMessageParameters *messageParameters, uint8_t *sender, uint8_t *receiver);
 
 /**
- * Encode a message into a frame.
+ * Encodes `message` and `messageParameters` and write it to `data`.
  * 
- * `messageType` should be one of the `JR_VISCA_MESSAGE_*` values, indicating which
- * message is to be encoded.
- * 
- * `messageParameters` should have the member corresponding to the given `messageType` set,
- * if one exists (if there is no corresponding `messageParameters` member, `messageParameters` is
- * ignored for that message).
- * 
- * The encoded frame will be written to `frame`.
- * 
- * Returns 0 on success, -1 on failure.
+ * Returns the byte count of the encoded message, or -1 if the given `data` buffer is too short to hold the full message.
  */
-int jr_viscaEncodeFrame(int messageType, union jr_viscaMessageParameters messageParameters, jr_viscaFrame *frame);
+int jr_viscaEncodeMessage(uint8_t *data, int dataLength, int message, union jr_viscaMessageParameters messageParameters, uint8_t sender, uint8_t receiver);
 
 #endif
