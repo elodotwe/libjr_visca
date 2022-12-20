@@ -150,9 +150,9 @@ void jr_visca_handleZoomPositionInqResponseParameters(jr_viscaFrame* frame, unio
 
 void jr_visca_handleAckCompletionParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
     if (isDecodingFrame) {
-        messageParameters->ackCompletionParameters.socketNumber = frame->data[1] & 0xf;
+        messageParameters->ackCompletionParameters.socketNumber = frame->data[0] & 0xf;
     } else {
-        frame->data[1] += messageParameters->ackCompletionParameters.socketNumber;
+        frame->data[0] += messageParameters->ackCompletionParameters.socketNumber;
     }
 }
 

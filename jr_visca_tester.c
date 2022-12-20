@@ -1,10 +1,10 @@
-#include <jr_visca.h>
+#include "jr_visca.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 void bail(int line, char *message) {
-    fprintf(stderr, "%d: %s\n", line, message);
+    fprintf(stderr, "line %d: %s\n", line, message);
     exit(-1);
 }
 
@@ -49,11 +49,32 @@ void testEncodeMessage() {
     }
 }
 
+void testAckDecode() {
+    uint8_t encoded[] = {0x90, 0x42, 0xff};
+    int message = 0;
+    union jr_viscaMessageParameters parameters;
+    uint8_t sender = 0;
+    uint8_t receiver = 0;
+    int result = jr_viscaDecodeMessage(encoded, sizeof(encoded), &message, &parameters, &sender, &receiver);
+    assertEqualsInt(result, 3, __LINE__, "decode should consume the entire frame and not error out");
+    assertEqualsInt(message, JR_VISCA_MESSAGE_ACK, __LINE__, "decoded message type should be ACK");
+    uint8_t expectedSocket = 2;
+    assertEqualsBuffer(&parameters.ackCompletionParameters.socketNumber, &expectedSocket, 1, __LINE__, "decoded ACK socket number wrong");
+}
+
+void testAckEncode() {
+    union jr_viscaMessageParameters parameters;
+    parameters.ackCompletionParameters.socketNumber = 3;
+    uint8_t expectedData[] = {0x90, 0x43, 0xff};
+    assertEncodedMessage(JR_VISCA_MESSAGE_ACK, parameters, 1, 0, expectedData, sizeof(expectedData), __LINE__);
+}
 
 int main() {
     printf("jr_visca_tester\n");
 
     testEncodeMessage();
+    testAckDecode();
+    testAckEncode();
 
     return 0;
 }
