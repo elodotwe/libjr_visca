@@ -70,8 +70,9 @@ int jr_viscaDataToFrame(uint8_t *data, int dataLength, jr_viscaFrame *frame) {
     }
 
     // First byte is header containing sender and receiver addresses.
+    // Except for Address Set (aka Camera Number) and IFClear(Broadcast), which are 0x88, but they don't apply to visca over IP.
     frame->sender = (data[0] >> 4) & 0x7;
-    frame->receiver = data[0] & 0x7;
+    frame->receiver = data[0] & 0xF;
 
     // N bytes of packet data between header byte and 0xff terminator.
     memcpy(frame->data, data + 1, terminatorIndex - 1);
@@ -86,7 +87,7 @@ int jr_viscaFrameToData(uint8_t *data, int dataLength, jr_viscaFrame frame) {
         return -1;
     }
 
-    if ((frame.sender > 7) || (frame.receiver > 7)) {
+    if ((frame.sender > 7) || (frame.receiver > 0xF)) {
         return -1;
     }
 
@@ -140,6 +141,25 @@ void jr_visca_handlePanTiltPositionInqResponseParameters(jr_viscaFrame* frame, u
     }
 }
 
+// AbsolutePosition [81] 01 06 02 [3]VV [4]WW [5]0Y 0Y 0Y 0Y [9]0Z 0Z 0Z 0Z FF
+// VV: Pan speed 0x01 (low speed) to 0x18 (high speed)
+// WW: Tilt speed 0x01 (low speed) to 0x14 (high speed)
+// YYYY: Pan Position
+// ZZZZ: Tilt Position
+void jr_visca_handleAbsolutePanTiltPositionParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->absolutePanTiltPositionParameters.panSpeed = frame->data[3] & 0xf;
+        messageParameters->absolutePanTiltPositionParameters.tiltSpeed = frame->data[4] & 0xf;
+        messageParameters->absolutePanTiltPositionParameters.panPosition = _jr_viscaRead16FromBuffer(frame->data + 5);
+        messageParameters->absolutePanTiltPositionParameters.tiltPosition = _jr_viscaRead16FromBuffer(frame->data + 9);
+    } else {
+        frame->data[3] = messageParameters->absolutePanTiltPositionParameters.panSpeed;
+        frame->data[4] = messageParameters->absolutePanTiltPositionParameters.tiltSpeed;
+        _jr_viscaWrite16ToBuffer(messageParameters->absolutePanTiltPositionParameters.panPosition, frame->data + 5);
+        _jr_viscaWrite16ToBuffer(messageParameters->absolutePanTiltPositionParameters.tiltPosition, frame->data + 9);
+    }
+}
+
 void jr_visca_handleZoomPositionInqResponseParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
     if (isDecodingFrame) {
         messageParameters->zoomPositionParameters.zoomPosition = _jr_viscaRead16FromBuffer(frame->data + 1);
@@ -156,11 +176,39 @@ void jr_visca_handleAckCompletionParameters(jr_viscaFrame* frame, union jr_visca
     }
 }
 
+void jr_visca_handleCameraNumberParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    // Request: 88 30 01 FF, reply: 88 30 0w FF, w is 2-8 (camera+1)
+    if (isDecodingFrame) {
+        messageParameters->cameraNumberParameters.cameraNum = frame->data[1] & 0xf;
+    } else {
+        frame->data[1] += messageParameters->cameraNumberParameters.cameraNum;
+    }
+}
+
 void jr_visca_handleZoomVariableParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
     if (isDecodingFrame) {
         messageParameters->zoomVariableParameters.zoomSpeed = frame->data[3] & 0xf;
     } else {
         frame->data[3] += messageParameters->zoomVariableParameters.zoomSpeed;
+    }
+}
+
+void jr_visca_handlePresetSpeedParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        uint8_t speed = frame->data[3] & 0xff;
+        speed = (speed < 1) ? 1 : ((speed > 0x18) ? 0x18 : speed);
+        messageParameters->presetSpeedParameters.presetSpeed = speed;
+    } else {
+        frame->data[3] = messageParameters->presetSpeedParameters.presetSpeed;
+    }
+}
+
+void jr_visca_handleMemoryParameters(jr_viscaFrame* frame, union jr_viscaMessageParameters *messageParameters, bool isDecodingFrame) {
+    if (isDecodingFrame) {
+        messageParameters->memoryParameters.memory = frame->data[4] & 0xff;
+        messageParameters->memoryParameters.mode = frame->data[3] & 0xff;
+    } else {
+        frame->data[4] = messageParameters->memoryParameters.memory;
     }
 }
 
@@ -295,6 +343,69 @@ jr_viscaMessageDefinition definitions[] = {
         JR_VISCA_MESSAGE_PAN_TILT_DRIVE,
         &jr_visca_handlePanTiltDriveParameters
     },
+    {
+        {0x30, 0x01},
+        {0xff, 0xff},
+        2,
+        JR_VISCA_MESSAGE_CAMERA_NUMBER,
+        &jr_visca_handleCameraNumberParameters
+    },
+    {
+        {0x01, 0x04, 0x3f, 0x00, 0x00},
+        {0xff, 0xff, 0xff, 0x00, 0x00},
+        5,
+        JR_VISCA_MESSAGE_MEMORY,
+        &jr_visca_handleMemoryParameters
+    },
+    {
+        {0x01, 0x00, 0x01},
+        {0xff, 0xff, 0xff},
+        3,
+        JR_VISCA_MESSAGE_CLEAR,
+        NULL
+    },
+    {   // 01 06 01 pp
+        {0x01, 0x06, 0x01, 0x00},
+        {0xff, 0xff, 0xff, 0x00},
+        4,
+        JR_VISCA_MESSAGE_PRESET_RECALL_SPEED,
+        &jr_visca_handlePresetSpeedParameters
+    },
+    {   // 01 06 02        VV    WW     0Y 0Y 0Y 0Y              0Z 0Z 0Z 0Z
+        {0x01, 0x06, 0x02, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00},
+        {0xff, 0xff, 0xff, 0x00, 0x00,  0xf0, 0xf0, 0xf0, 0xf0,  0xf0, 0xf0, 0xf0, 0xf0},
+        13,
+        JR_VISCA_MESSAGE_ABSOLUTE_PAN_TILT,
+        &jr_visca_handleAbsolutePanTiltPositionParameters
+    },
+    {   // Home 81 01 06 04 FF
+        {0x01, 0x06, 0x04},
+        {0xff, 0xff, 0xff},
+        3,
+        JR_VISCA_MESSAGE_HOME,
+        NULL
+    },
+    {   // Reset 81 01 06 05 FF
+        {0x01, 0x06, 0x05},
+        {0xff, 0xff, 0xff},
+        3,
+        JR_VISCA_MESSAGE_RESET,
+        NULL
+    },
+    {   // Cancel 81 2z FF - supported by some cameras but apparently not PTZOptics, which returns syntax error instead of cancel reply. But it does interrupt the current operation.
+        {0x20},
+        {0xf0},
+        1,
+        JR_VISCA_MESSAGE_CANCEL,
+        NULL
+    },
+    {
+        {0x60, 0x04},
+        {0xf0, 0xff},
+        2,
+        JR_VISCA_MESSAGE_CANCEL_REPLY,
+        &jr_visca_handleAckCompletionParameters
+    },
     { {}, {}, 0, 0, NULL} // Final definition must have `signatureLength` == 0.
 };
 
@@ -321,11 +432,13 @@ int jr_viscaDecodeFrame(jr_viscaFrame frame, union jr_viscaMessageParameters *me
             }
             return definitions[i].commandType;
         }
-        // printf("definition %d: sig: ", i);
-        // _jr_viscahex_print(definitions[i].signature, definitions[i].signatureLength);
-        // printf(" sigmask: ");
-        // _jr_viscahex_print(definitions[i].signatureMask, definitions[i].signatureLength);
-        // printf("\n");
+#ifdef VERBOSE_DEF
+         printf("definition %d: sig: ", i);
+         _jr_viscahex_print(definitions[i].signature, definitions[i].signatureLength);
+         printf(" sigmask: ");
+         _jr_viscahex_print(definitions[i].signatureMask, definitions[i].signatureLength);
+         printf("\n");
+#endif
         i++;
     }
 
