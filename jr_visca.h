@@ -43,10 +43,41 @@
 
 #define JR_VISCA_MESSAGE_PAN_TILT_DRIVE 15
 
+#define JR_VISCA_MESSAGE_CAMERA_NUMBER 16
+
+#define JR_VISCA_MESSAGE_MEMORY 17
+
+#define JR_VISCA_MESSAGE_CLEAR 18
+
+#define JR_VISCA_MESSAGE_PRESET_RECALL_SPEED 19
+
+#define JR_VISCA_MESSAGE_ABSOLUTE_PAN_TILT 20
+
+#define JR_VISCA_MESSAGE_HOME 21
+
+#define JR_VISCA_MESSAGE_RESET 22
+
+#define JR_VISCA_MESSAGE_CANCEL 23
+
+#define JR_VISCA_MESSAGE_CANCEL_REPLY 24
+
 struct jr_viscaPanTiltPositionInqResponseParameters {
     int16_t panPosition;
     int16_t tiltPosition;
 };
+
+// AbsolutePosition 81 01 06 02 VV WW 0Y 0Y 0Y 0Y 0Z 0Z 0Z 0Z FF
+// VV: Pan speed 0x01 (low speed) to 0x18 (high speed)
+// WW: Tilt speed 0x01 (low speed) to 0x14 (high speed)
+// YYYY: Pan Position
+// ZZZZ: Tilt Position
+struct jr_viscaAbsolutePanTiltPositionParameters {
+    int16_t panPosition;
+    int16_t tiltPosition;
+    uint8_t panSpeed;
+    uint8_t tiltSpeed;
+};
+
 
 struct jr_viscaZoomPositionParameters {
     int16_t zoomPosition;
@@ -61,6 +92,25 @@ struct jr_viscaZoomVariableParameters {
     uint8_t zoomSpeed;
 };
 
+
+struct jr_viscaPresetSpeedParameters {
+    // 1-0x18
+    uint8_t presetSpeed;
+};
+
+struct jr_viscaCameraNumberParameters {
+    // 1-7
+    uint8_t cameraNum;
+};
+
+
+struct jr_viscaMemoryParameters {
+    // 1-127
+    uint8_t memory;
+    // 0=reset, 1=set, 2=recall
+    uint8_t mode;
+};
+
 #define JR_VISCA_TILT_DIRECTION_UP 1
 #define JR_VISCA_TILT_DIRECTION_DOWN 2
 #define JR_VISCA_TILT_DIRECTION_STOP 3
@@ -68,6 +118,10 @@ struct jr_viscaZoomVariableParameters {
 #define JR_VISCA_PAN_DIRECTION_LEFT 1
 #define JR_VISCA_PAN_DIRECTION_RIGHT 2
 #define JR_VISCA_PAN_DIRECTION_STOP 3
+
+#define JR_VISCA_MEMORY_MODE_RESET 0
+#define JR_VISCA_MEMORY_MODE_SET 1
+#define JR_VISCA_MEMORY_MODE_RECALL 2
 
 struct jr_viscaPanTiltDriveParameters {
     uint8_t panSpeed; // 1-0x18
@@ -83,6 +137,10 @@ union jr_viscaMessageParameters
     struct jr_viscaZoomVariableParameters zoomVariableParameters;
     struct jr_viscaAckCompletionParameters ackCompletionParameters;
     struct jr_viscaPanTiltDriveParameters panTiltDriveParameters;
+    struct jr_viscaCameraNumberParameters cameraNumberParameters;
+    struct jr_viscaMemoryParameters memoryParameters;
+    struct jr_viscaPresetSpeedParameters presetSpeedParameters;
+    struct jr_viscaAbsolutePanTiltPositionParameters absolutePanTiltPositionParameters;
 };
 
 /**
